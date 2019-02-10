@@ -6,13 +6,14 @@ using Microsoft.Extensions.Logging;
 using System.Threading;
 using System;
 using BackgroundKafkaSubscriber.Services;
+using Confluent.Kafka;
 
 namespace BackgroundKafkaSubscriber
 {
     class Program
     {
         public static async Task Main(string[] args)
-        {
+        {   
             var host = new HostBuilder().ConfigureLogging((hostContext, config) =>
                 {
                     config.AddConsole();
@@ -26,12 +27,12 @@ namespace BackgroundKafkaSubscriber
                 {
                     config.AddJsonFile("appsettings.json", optional: true);
                     config.AddJsonFile($"appsettings.{hostContext.HostingEnvironment.EnvironmentName}.json", optional: true);
-                    config.AddCommandLine(args);
+                    config.AddCommandLine(args);                    
                 })
-                 .ConfigureServices((hostContext, services) =>
+                .ConfigureServices((hostContext, services) =>
                 {
                     services.AddOptions();
-                    services.AddSingleton<IHostedService, ServiceA>();
+                    services.Configure<ConsumerConfig>(hostContext.Configuration.GetSection("KafkaSettings"));                
                     services.AddSingleton<IHostedService, MessageHandlerService>();
                 })
                 .Build();
@@ -44,7 +45,7 @@ namespace BackgroundKafkaSubscriber
 
                 // Wait for the host to shutdown
                 await host.WaitForShutdownAsync();
-                Console.WriteLine("Shutdown has been triggered");
+                Console.WriteLine("Shutdown has been triggered");                 
             }
         }
     }
