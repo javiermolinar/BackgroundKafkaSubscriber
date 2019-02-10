@@ -2,25 +2,31 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Confluent.Kafka;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace BackgroundKafkaSubscriber.Services{
     public class MessageHandlerService : BackgroundService{
 
         private readonly ConsumerConfig _config;
+        private readonly string _topic;
+        private readonly ILogger<MessageHandlerService> _logger;
 
-        public MessageHandlerService(IOptions<ConsumerConfig> consumerConfiguration)
+        public MessageHandlerService(IOptions<ConsumerConfig> consumerConfiguration, IConfiguration configuration, ILogger<MessageHandlerService> logger)
         {
             _config = consumerConfiguration.Value;
+            _topic = configuration["SubscriberSettings:Topic"];
+            _logger = logger;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {             
             using (var consumer =  new ConsumerBuilder<Ignore, string>(_config).Build())
             {
-                consumer.Subscribe("test");        
-                Console.WriteLine("Broker just started");      
+                consumer.Subscribe(_topic);
+                _logger.LogDebug("Broker just started");      
 
                 while (!stoppingToken.IsCancellationRequested)
                 {
@@ -31,7 +37,7 @@ namespace BackgroundKafkaSubscriber.Services{
                     }
                     catch (ConsumeException e)
                     {
-                        Console.WriteLine($"Error occured: {e.Error.Reason}");
+                        _logger.LogDebug($"Error occured: {e.Error.Reason}");
                     }
                     catch (OperationCanceledException)
                     {
