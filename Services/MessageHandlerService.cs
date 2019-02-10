@@ -8,46 +8,48 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace BackgroundKafkaSubscriber.Services{
-    public class MessageHandlerService : BackgroundService{
-
-        private readonly ConsumerConfig _config;
-        private readonly string _topic;
+    public class MessageHandlerService : BackgroundService {
+        
         private readonly ILogger<MessageHandlerService> _logger;
+        private Consumer<Ignore, string> _consumer;
 
         public MessageHandlerService(IOptions<ConsumerConfig> consumerConfiguration, IConfiguration configuration, ILogger<MessageHandlerService> logger)
-        {
-            _config = consumerConfiguration.Value;
-            _topic = configuration["SubscriberSettings:Topic"];
+        {         
             _logger = logger;
-        }
+            _consumer = new ConsumerBuilder<Ignore, string>(consumerConfiguration.Value).Build();
+            _consumer.Subscribe(configuration["SubscriberSettings:Topic"]);
+            _logger.LogInformation("Broker just started");
+        }   
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-        {             
-            using (var consumer =  new ConsumerBuilder<Ignore, string>(_config).Build())
+        {
+            await Task.Run(() =>
             {
-                consumer.Subscribe(_topic);
-                _logger.LogDebug("Broker just started");      
-
                 while (!stoppingToken.IsCancellationRequested)
                 {
                     try
                     {
-                        var cr = consumer.Consume(stoppingToken);
-                        Console.WriteLine($"Consumed message '{cr.Value}' at: '{cr.TopicPartitionOffset}'.");
+                        ConsumeResult<Ignore,string> cr = _consumer.Consume(stoppingToken);
+                        _logger.LogInformation($"Consumed message '{cr.Value}' at: '{cr.TopicPartitionOffset}'.");
                     }
                     catch (ConsumeException e)
                     {
-                        _logger.LogDebug($"Error occured: {e.Error.Reason}");
+                        _logger.LogInformation($"Error occured: {e.Error.Reason}");
                     }
                     catch (OperationCanceledException)
                     {
                         break;
                     }
                 }
-
-                await Task.FromResult(0);
-                consumer.Close();
-            }
+            });
         }
+
+        public override Task StopAsync(CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("Broker is stopped");           
+            _consumer.Close();
+            _consumer.Dispose();
+            return Task.CompletedTask;
+        }        
     }
 }
