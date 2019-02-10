@@ -17,7 +17,7 @@ namespace BackgroundKafkaSubscriber.Services{
         {         
             _logger = logger;
             _consumer = new ConsumerBuilder<Ignore, string>(consumerConfiguration.Value).Build();
-            _consumer.Subscribe(configuration["SubscriberSettings:Topic"]);
+            _consumer.Subscribe(configuration.GetValue("Topic", ""));
             _logger.LogInformation("Broker just started");
         }   
 
