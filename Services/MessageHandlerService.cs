@@ -7,11 +7,14 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace BackgroundKafkaSubscriber.Services{
-    public class MessageHandlerService : BackgroundService {
+namespace BackgroundKafkaSubscriber.Services
+{
+
+    public class MessageHandlerService : BackgroundService
+    {
         
         private readonly ILogger<MessageHandlerService> _logger;
-        private Consumer<Ignore, string> _consumer;
+        private readonly Consumer<Ignore, string> _consumer;
 
         public MessageHandlerService(IOptions<ConsumerConfig> consumerConfiguration, IConfiguration configuration, ILogger<MessageHandlerService> logger)
         {         
@@ -41,7 +44,7 @@ namespace BackgroundKafkaSubscriber.Services{
                         break;
                     }
                 }
-            });
+            }, stoppingToken);
         }
 
         public override Task StopAsync(CancellationToken cancellationToken)
