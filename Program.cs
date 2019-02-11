@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Threading.Tasks;
+using BackgroundKafkaSubscriber.Infrastructure;
 using Microsoft.Extensions.Logging;
 
 
